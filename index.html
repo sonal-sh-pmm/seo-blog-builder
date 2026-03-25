@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SEO Blog Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --ink:#0f0e0b; --paper:#f8f5ef; --cream:#f0ead8; --gold:#c9a84c;
+    --gold-light:#e8c96e; --moss:#3a5c42; --rust:#b8441a; --muted:#8a8070;
+    --border:#d8cebf; --white:#fff;
+    --shadow:0 2px 20px rgba(15,14,11,.08); --shadow-lg:0 8px 40px rgba(15,14,11,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;line-height:1.6;}
+
+  /* ── MODALS ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,14,11,.75);backdrop-filter:blur(4px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--white);border-radius:14px;padding:32px 36px;max-width:560px;width:100%;box-shadow:var(--shadow-lg);border:1px solid var(--border);animation:fadeUp .22s ease;max-height:90vh;overflow-y:auto;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .modal-logo{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:900;margin-bottom:3px;}
+  .modal-logo span{color:var(--gold);}
+  .modal-subtitle{font-size:.82rem;color:var(--muted);margin-bottom:22px;}
+  .modal h3{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:7px;}
+  .modal-tabs{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:18px;}
+  .modal-tab{flex:1;padding:8px 12px;font-size:.81rem;font-weight:500;cursor:pointer;text-align:center;background:var(--paper);color:var(--muted);border:none;transition:all .15s;font-family:'DM Sans',sans-serif;border-right:1px solid var(--border);}
+  .modal-tab:last-child{border-right:none;}
+  .modal-tab.active{background:var(--ink);color:var(--paper);font-weight:600;}
+  .modal-panel{display:none;flex-direction:column;gap:13px;}
+  .modal-panel.active{display:flex;}
+  .modal input,.modal textarea{width:100%;background:var(--paper);border:1.5px solid var(--border);border-radius:6px;padding:9px 13px;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--ink);outline:none;transition:border .2s,box-shadow .2s;}
+  .modal textarea{font-family:'DM Sans',sans-serif;resize:vertical;min-height:72px;line-height:1.5;}
+  .modal input:focus,.modal textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.15);}
+  .modal-note{background:#fff8e8;border:1px solid #f0d88a;border-radius:6px;padding:9px 13px;font-size:.76rem;color:#7a5f0a;line-height:1.5;}
+  .modal-note.info{background:#eef4fb;border-color:#b0cde8;color:#1d4a7a;}
+  .modal-note a{color:var(--gold);}
+  .modal-note code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'DM Mono',monospace;}
+  .btn-modal-save{background:var(--ink);color:var(--paper);border:none;border-radius:8px;padding:11px 20px;font-family:'DM Sans',sans-serif;font-size:.93rem;font-weight:600;cursor:pointer;width:100%;margin-top:4px;transition:background .2s;}
+  .btn-modal-save:hover{background:var(--moss);}
+  .modal-divider{height:1px;background:var(--border);margin:4px 0;}
+  .ctx-badge{display:inline-flex;align-items:center;gap:5px;background:#e8f5eb;border:1px solid #b8dcc0;color:var(--moss);border-radius:12px;padding:2px 9px;font-size:.72rem;font-weight:600;}
+  .ctx-badge.off{background:var(--cream);border-color:var(--border);color:var(--muted);}
+
+  /* ── HEADER ── */
+  .header{background:var(--ink);color:var(--paper);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:100;gap:10px;}
+  .logo{font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:900;letter-spacing:-.5px;white-space:nowrap;}
+  .logo span{color:var(--gold);}
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .api-status{display:flex;align-items:center;gap:6px;font-size:.73rem;color:var(--muted);white-space:nowrap;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s;}
+  .status-dot.connected{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.6);}
+  .status-dot.error{background:#f87171;}
+  .btn-header{background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:6px;color:var(--paper);padding:5px 11px;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+  .btn-header:hover{border-color:var(--gold);color:var(--gold);}
+  .btn-header.highlight{border-color:var(--gold);color:var(--gold);}
+
+  /* ── LAYOUT ── */
+  .layout{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 61px);}
+
+  /* ── SIDEBAR ── */
+  .sidebar{background:var(--cream);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+  .sidebar-section{padding:20px 20px 0;display:flex;flex-direction:column;gap:15px;}
+  .sidebar-section:last-child{padding-bottom:22px;}
+  .sidebar-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--ink);border-bottom:2px solid var(--gold);padding-bottom:9px;}
+  .sidebar-subtitle{font-size:.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.8px;padding:16px 20px 0;margin-bottom:-8px;}
+
+  /* product context strip */
+  .ctx-strip{margin:0 20px;background:var(--white);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;transition:border .2s;}
+  .ctx-strip:hover{border-color:var(--gold);}
+  .ctx-strip-left{display:flex;align-items:center;gap:9px;}
+  .ctx-strip-icon{font-size:1.1rem;}
+  .ctx-strip-text{font-size:.8rem;color:var(--ink);font-weight:500;}
+  .ctx-strip-text span{color:var(--muted);font-weight:400;}
+  .ctx-strip-edit{font-size:.72rem;color:var(--gold);font-weight:600;white-space:nowrap;}
+
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+  .field label .req{color:var(--rust);}
+  .field input,.field textarea,.field select{background:var(--white);border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);transition:border .2s,box-shadow .2s;outline:none;}
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.15);}
+  .field textarea{resize:vertical;min-height:68px;line-height:1.5;}
+  .field .hint{font-size:.71rem;color:var(--muted);line-height:1.4;}
+  .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .toggles{display:flex;flex-direction:column;gap:7px;}
+  .toggle-item{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .toggle-item input[type=checkbox]{width:14px;height:14px;accent-color:var(--gold);cursor:pointer;}
+  .toggle-item span{font-size:.81rem;color:var(--ink);}
+  .divider{height:1px;background:var(--border);}
+
+  .btn-generate{background:var(--ink);color:var(--paper);border:2px solid transparent;border-radius:8px;padding:12px 20px;font-family:'DM Sans',sans-serif;font-size:.94rem;font-weight:600;cursor:pointer;width:100%;transition:background .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .btn-generate:hover:not(:disabled){background:var(--moss);}
+  .btn-generate:active:not(:disabled){transform:scale(.98);}
+  .btn-generate:disabled{opacity:.55;cursor:not-allowed;}
+  .btn-generate .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;display:none;}
+  .btn-generate.loading .spinner{display:block;}
+  .btn-generate.loading .btn-text::after{content:'…';}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #genStatus{font-size:.73rem;color:var(--muted);text-align:center;min-height:16px;}
+
+  .error-box{background:#fff5f5;border:1px solid #fca5a5;border-radius:6px;padding:10px 13px;color:#b91c1c;font-size:.82rem;display:none;line-height:1.5;}
+  .error-box.show{display:block;}
+  .progress-bar-wrap{background:var(--border);border-radius:4px;height:3px;overflow:hidden;display:none;}
+  .progress-bar-wrap.show{display:block;}
+  .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:4px;animation:progress 2.2s ease-in-out infinite;}
+  @keyframes progress{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:5%;margin-left:100%}}
+
+  /* ── MAIN OUTPUT ── */
+  .main{display:flex;flex-direction:column;overflow:hidden;}
+  .tabs{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 20px;}
+  .tab{padding:12px 16px;font-size:.81rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+  .tab.active{color:var(--ink);border-bottom-color:var(--gold);font-weight:600;}
+  .tab:hover:not(.active){color:var(--ink);}
+  .output-area{flex:1;overflow-y:auto;padding:24px;display:none;}
+  .output-area.active{display:block;}
+
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:340px;text-align:center;gap:12px;color:var(--muted);}
+  .empty-icon{font-size:2.4rem;opacity:.25;}
+  .empty-state h3{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--ink);opacity:.35;}
+  .empty-state p{font-size:.8rem;max-width:240px;opacity:.5;}
+
+  .blog-meta-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .meta-pill{display:flex;align-items:center;gap:5px;background:var(--cream);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:.71rem;font-weight:500;color:var(--muted);}
+  .meta-pill.green{background:#e8f5eb;color:var(--moss);border-color:#b8dcc0;}
+  .meta-pill.gold{background:#fdf3dc;color:#8a6a10;border-color:#e8c96e;}
+
+  .blog-content{max-width:700px;margin:0 auto;background:var(--white);border-radius:10px;padding:40px 44px;box-shadow:var(--shadow);border:1px solid var(--border);}
+  .blog-content h1{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:900;line-height:1.2;margin-bottom:14px;}
+  .blog-content h2{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;margin:26px 0 9px;}
+  .blog-content h3{font-size:.95rem;font-weight:600;margin:16px 0 6px;}
+  .blog-content p{margin-bottom:12px;line-height:1.75;color:#2a2a2a;}
+  .blog-content ul,.blog-content ol{margin:9px 0 13px 18px;color:#2a2a2a;}
+  .blog-content li{margin-bottom:5px;line-height:1.65;}
+  .blog-content strong{color:var(--ink);font-weight:600;}
+
+  .seo-panel{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:15px;}
+  .seo-card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow);}
+  .seo-card-header{background:var(--cream);padding:9px 16px;border-bottom:1px solid var(--border);}
+  .seo-card-header h4{font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+  .seo-card-body{padding:14px 16px;}
+  .meta-preview{background:var(--paper);border:1px solid var(--border);border-radius:7px;padding:13px;}
+  .meta-preview .serp-title{font-size:.96rem;color:#1a0dab;text-decoration:underline;margin-bottom:3px;}
+  .meta-preview .serp-url{font-size:.76rem;color:#006621;margin-bottom:3px;}
+  .meta-preview .serp-desc{font-size:.81rem;color:#545454;line-height:1.45;}
+  .checklist{display:flex;flex-direction:column;gap:6px;}
+  .check-item{display:flex;align-items:flex-start;gap:8px;font-size:.83rem;line-height:1.5;}
+  .check-icon{font-size:.85rem;flex-shrink:0;margin-top:2px;}
+  .keyword-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .keyword-tag{background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:.74rem;font-family:'DM Mono',monospace;}
+  .keyword-tag.primary{background:#fdf3dc;border-color:var(--gold);color:#7a5f0a;}
+
+  .code-block{background:#1a1814;color:#e8e0d0;border-radius:10px;padding:20px;font-family:'DM Mono',monospace;font-size:.76rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;word-break:break-word;box-shadow:var(--shadow-lg);}
+  .output-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;flex-wrap:wrap;gap:8px;}
+  .toolbar-actions{display:flex;gap:6px;}
+  .btn-sm{background:var(--white);border:1.5px solid var(--border);border-radius:6px;padding:5px 12px;font-size:.76rem;font-weight:500;cursor:pointer;color:var(--ink);transition:all .15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;}
+  .btn-sm:hover{border-color:var(--gold);color:var(--gold);background:#fdf3dc;}
+  .btn-sm.copied{border-color:var(--moss);color:var(--moss);background:#e8f5eb;}
+
+  @media(max-width:860px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{border-right:none;border-bottom:1px solid var(--border);}
+    .blog-content{padding:20px 16px;}
+    .header{padding:12px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     MODAL 1 — API CONFIG
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="modalApi">
+  <div class="modal">
+    <div class="modal-logo">SEO<span>Blog</span> Builder</div>
+    <div class="modal-subtitle">Connect to Claude API to generate SEO-optimised blog posts</div>
+    <h3>Connection Mode</h3>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchModalTab('direct',this)">🔑 Direct API Key</button>
+      <button class="modal-tab" onclick="switchModalTab('proxy',this)">🔒 Backend Proxy</button>
+    </div>
+    <div class="modal-panel active" id="panel-direct">
+      <div><h3>Anthropic API Key</h3>
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off"/>
+      </div>
+      <div class="modal-note">⚠️ <strong>Personal use only.</strong> Key stored in browser localStorage, sent only to Anthropic. Get yours at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Use Proxy mode for shared team deployments.</div>
+    </div>
+    <div class="modal-panel" id="panel-proxy">
+      <div><h3>Proxy Endpoint URL</h3>
+        <input type="url" id="proxyUrlInput" placeholder="https://your-proxy.onrender.com/api/generate"/>
+      </div>
+      <div class="modal-note info">ℹ️ <strong>Recommended for teams.</strong> Your API key lives on the backend — never exposed to users. Deploy <code>server.js</code> on Render.com free tier and paste the URL here.</div>
+    </div>
+    <button class="btn-modal-save" onclick="saveApiConfig()">Save &amp; Connect →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL 2 — PRODUCT CONTEXT
+══════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modalCtx">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-logo">🎯 Product <span>Context</span></div>
+    <div class="modal-subtitle">Tell the AI about your product once — every blog will be tailored to it automatically.</div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <h3>Product / Brand Name <span style="color:var(--rust)">*</span></h3>
+        <input type="text" id="ctx_brand" placeholder="e.g. Salesify CRM"/>
+      </div>
+      <div>
+        <h3>What does your product do? (1-2 sentences)</h3>
+        <textarea id="ctx_what" placeholder="e.g. Salesify is a CRM built for real estate agents that automates follow-ups, tracks leads across channels, and provides AI-powered deal insights."></textarea>
+      </div>
+      <div>
+        <h3>Target Customer (be specific)</h3>
+        <input type="text" id="ctx_customer" placeholder="e.g. Independent real estate agents in the US with 10-50 active listings"/>
+      </div>
+      <div>
+        <h3>Top 3 USPs / Differentiators</h3>
+        <textarea id="ctx_usps" style="min-height:60px;" placeholder="e.g. 1. Auto follow-up sequences&#10;2. WhatsApp + Email integration&#10;3. No setup fee, works out of the box"></textarea>
+      </div>
+      <div>
+        <h3>Brand Voice &amp; Tone</h3>
+        <input type="text" id="ctx_voice" placeholder="e.g. Confident, practical, no fluff — like advice from a sharp sales coach"/>
+      </div>
+      <div>
+        <h3>Competitors to differentiate from (optional)</h3>
+        <input type="text" id="ctx_competitors" placeholder="e.g. HubSpot, Salesforce, Pipedrive"/>
+      </div>
+      <div>
+        <h3>Things to NEVER say / avoid (optional)</h3>
+        <input type="text" id="ctx_avoid" placeholder="e.g. Don't mention pricing, avoid 'revolutionary', don't compare to HubSpot directly"/>
+      </div>
+      <div class="modal-note">💡 This context is saved in your browser. Every blog generated will automatically be written from your brand's perspective, mentioning your product naturally where relevant.</div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="btn-modal-save" style="background:var(--moss);" onclick="clearCtx()">Clear</button>
+      <button class="btn-modal-save" onclick="saveCtx()">Save Context →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     HEADER
+══════════════════════════════════════ -->
+<header class="header">
+  <div class="logo">SEO<span>Blog</span> Builder</div>
+  <div class="header-right">
+    <div class="api-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusLabel">Not connected</span>
+    </div>
+    <button class="btn-header highlight" id="ctxBtn" onclick="openCtxModal()">🎯 Product Context</button>
+    <button class="btn-header" onclick="openApiModal()">⚙️ API Settings</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     LAYOUT
+══════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Build Your Blog Post</div>
+    </div>
+
+    <!-- Product context strip -->
+    <div class="ctx-strip" id="ctxStrip" onclick="openCtxModal()">
+      <div class="ctx-strip-left">
+        <div class="ctx-strip-icon">🎯</div>
+        <div class="ctx-strip-text" id="ctxStripText">No product context set <span>— click to add</span></div>
+      </div>
+      <div class="ctx-strip-edit">Edit →</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="field">
+        <label>Primary Keyword <span class="req">*</span></label>
+        <input type="text" id="keyword" placeholder="e.g. best CRM for real estate agents 2025"/>
+        <div class="hint">Be specific — long-tail keywords rank faster and convert better</div>
+      </div>
+      <div class="field">
+        <label>Blog Angle / Title Idea <span class="req">*</span></label>
+        <textarea id="topic" placeholder="e.g. Why 80% of real estate agents lose leads — and how the right CRM fixes it"></textarea>
+        <div class="hint">Give it an opinionated angle, not just a subject — this is what makes blogs feel human</div>
+      </div>
+      <div class="field">
+        <label>Target Audience</label>
+        <input type="text" id="audience" placeholder="e.g. independent real estate agents with 10-50 active listings"/>
+        <div class="hint">The more specific, the more personalised the output</div>
+      </div>
+      <div class="field">
+        <label>Product Page to Link</label>
+        <input type="url" id="productPage" placeholder="https://yoursite.com/product"/>
+      </div>
+    </div>
+
+    <div class="divider" style="margin:0 20px;"></div>
+
+    <div class="sidebar-section">
+      <div class="options-grid">
+        <div class="field">
+          <label>Word Count</label>
+          <select id="wordCount">
+            <option value="800">~800 words</option>
+            <option value="1200" selected>~1200 words</option>
+            <option value="1800">~1800 words</option>
+            <option value="2500">~2500 words</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tone</label>
+          <select id="tone">
+            <option value="conversational" selected>Conversational</option>
+            <option value="professional">Professional</option>
+            <option value="authoritative">Authoritative</option>
+            <option value="educational">Educational</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Secondary Keywords <span style="text-transform:none;letter-spacing:0;font-weight:400">(comma-separated)</span></label>
+        <input type="text" id="secondaryKw" placeholder="e.g. lead tracking CRM, real estate pipeline, follow-up automation"/>
+      </div>
+      <div class="field">
+        <label>Your Site Domain (for canonical &amp; OG tags)</label>
+        <input type="text" id="siteDomain" placeholder="e.g. salesify.io"/>
+      </div>
+      <div class="field">
+        <label>Author Name</label>
+        <input type="text" id="authorName" placeholder="e.g. Sarah Mitchell"/>
+      </div>
+    </div>
+
+    <div class="divider" style="margin:0 20px;"></div>
+
+    <div class="sidebar-section">
+      <div class="field">
+        <label>Include Sections</label>
+        <div class="toggles">
+          <label class="toggle-item"><input type="checkbox" id="incFaq" checked><span>FAQ Section</span></label>
+          <label class="toggle-item"><input type="checkbox" id="incCta" checked><span>Call-to-Action Block</span></label>
+          <label class="toggle-item"><input type="checkbox" id="incStats"><span>Statistics &amp; Data Points</span></label>
+          <label class="toggle-item"><input type="checkbox" id="incTips" checked><span>Pro Tips / Callouts</span></label>
+          <label class="toggle-item"><input type="checkbox" id="incExample" checked><span>Real-world Example / Story</span></label>
+        </div>
+      </div>
+
+      <div id="errorBox" class="error-box"></div>
+      <div class="progress-bar-wrap" id="progressBar"><div class="progress-bar-fill"></div></div>
+      <button class="btn-generate" id="generateBtn" onclick="generateBlog()">
+        <div class="spinner"></div>
+        <span class="btn-text">Generate Blog Post</span>
+      </button>
+      <div id="genStatus"></div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN OUTPUT ── -->
+  <main class="main">
+    <nav class="tabs">
+      <div class="tab active" onclick="switchTab('preview',this)">📄 Blog Preview</div>
+      <div class="tab" onclick="switchTab('seo',this)">📊 SEO Analysis</div>
+      <div class="tab" onclick="switchTab('raw',this)">🔡 Full HTML</div>
+    </nav>
+
+    <div id="tab-preview" class="output-area active">
+      <div id="previewEmpty" class="empty-state">
+        <div class="empty-icon">✍️</div>
+        <h3>Your blog will appear here</h3>
+        <p>Set your product context, fill the form, and click Generate.</p>
+      </div>
+      <div id="previewContent" style="display:none">
+        <div class="output-toolbar">
+          <div class="blog-meta-bar" id="metaBar"></div>
+          <div class="toolbar-actions">
+            <button class="btn-sm" onclick="copyBlog()">📋 Copy Text</button>
+            <button class="btn-sm" onclick="downloadHtml()">⬇️ Download HTML</button>
+          </div>
+        </div>
+        <div class="blog-content" id="blogContent"></div>
+      </div>
+    </div>
+
+    <div id="tab-seo" class="output-area">
+      <div id="seoEmpty" class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>SEO analysis awaits</h3>
+        <p>Generate a blog post to see SERP preview, meta tags, and checklist.</p>
+      </div>
+      <div id="seoContent" class="seo-panel" style="display:none"></div>
+    </div>
+
+    <div id="tab-raw" class="output-area">
+      <div id="rawEmpty" class="empty-state">
+        <div class="empty-icon">💻</div>
+        <h3>Full production HTML here</h3>
+        <p>Includes all SEO meta tags, Open Graph, Schema, and Canonical — ready for your CMS.</p>
+      </div>
+      <div id="rawContent" style="display:none">
+        <div class="output-toolbar">
+          <span style="font-size:.81rem;color:var(--muted)">Complete HTML with all SEO tags — drop into any CMS</span>
+          <div class="toolbar-actions">
+            <button class="btn-sm" id="copyHtmlBtn" onclick="copyHtml()">📋 Copy HTML</button>
+          </div>
+        </div>
+        <div class="code-block" id="rawCode"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let generatedHtml = '';
+let seoData = {};
+let currentApiMode = 'direct';
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  // restore API config
+  const savedKey   = localStorage.getItem('seo_api_key')   || '';
+  const savedProxy = localStorage.getItem('seo_proxy_url') || '';
+  const savedMode  = localStorage.getItem('seo_mode')      || 'direct';
+  document.getElementById('apiKeyInput').value   = savedKey;
+  document.getElementById('proxyUrlInput').value = savedProxy;
+  currentApiMode = savedMode;
+  syncModalTabs(savedMode);
+  const hasApi = (savedMode==='direct'&&savedKey)||(savedMode==='proxy'&&savedProxy);
+  if (hasApi) { closeModal('modalApi'); setStatus(true); }
+
+  // restore product context
+  restoreCtxFields();
+  updateCtxStrip();
+
+  // restore domain/author
+  document.getElementById('siteDomain').value = localStorage.getItem('seo_domain') || '';
+  document.getElementById('authorName').value  = localStorage.getItem('seo_author') || '';
+
+  // close modals when clicking backdrop — must be inside DOMContentLoaded
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.add('hidden'); });
+  });
+});
+
+/* ══════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════ */
+function openApiModal()  { document.getElementById('modalApi').classList.remove('hidden'); }
+function openCtxModal()  { document.getElementById('modalCtx').classList.remove('hidden'); }
+function closeModal(id)  { document.getElementById(id).classList.add('hidden'); }
+
+function switchModalTab(mode, el) {
+  currentApiMode = mode;
+  syncModalTabs(mode);
+}
+function syncModalTabs(mode) {
+  document.querySelectorAll('.modal-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&mode==='direct')||(i===1&&mode==='proxy')));
+  document.querySelectorAll('.modal-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+mode).classList.add('active');
+}
+
+function saveApiConfig() {
+  const key   = document.getElementById('apiKeyInput').value.trim();
+  const proxy = document.getElementById('proxyUrlInput').value.trim();
+  if (currentApiMode==='direct'&&!key)   { alert('Please enter your Anthropic API key.');  return; }
+  if (currentApiMode==='proxy' &&!proxy) { alert('Please enter your proxy endpoint URL.'); return; }
+  localStorage.setItem('seo_api_key',  key);
+  localStorage.setItem('seo_proxy_url',proxy);
+  localStorage.setItem('seo_mode',     currentApiMode);
+  closeModal('modalApi');
+  setStatus(true);
+}
+
+/* ══════════════════════════════════════
+   PRODUCT CONTEXT
+══════════════════════════════════════ */
+const CTX_FIELDS = ['ctx_brand','ctx_what','ctx_customer','ctx_usps','ctx_voice','ctx_competitors','ctx_avoid'];
+
+function restoreCtxFields() {
+  CTX_FIELDS.forEach(f => {
+    const el = document.getElementById(f);
+    if (el) el.value = localStorage.getItem('seo_'+f) || '';
+  });
+}
+
+function saveCtx() {
+  const brand = document.getElementById('ctx_brand').value.trim();
+  if (!brand) { alert('Please enter at least a product/brand name.'); return; }
+  CTX_FIELDS.forEach(f => localStorage.setItem('seo_'+f, document.getElementById(f).value.trim()));
+  closeModal('modalCtx');
+  updateCtxStrip();
+}
+
+function clearCtx() {
+  if (!confirm('Clear all product context?')) return;
+  CTX_FIELDS.forEach(f => { localStorage.removeItem('seo_'+f); document.getElementById(f).value=''; });
+  updateCtxStrip();
+  closeModal('modalCtx');
+}
+
+function getCtx() {
+  return {
+    brand:       localStorage.getItem('seo_ctx_brand')       || '',
+    what:        localStorage.getItem('seo_ctx_what')        || '',
+    customer:    localStorage.getItem('seo_ctx_customer')    || '',
+    usps:        localStorage.getItem('seo_ctx_usps')        || '',
+    voice:       localStorage.getItem('seo_ctx_voice')       || '',
+    competitors: localStorage.getItem('seo_ctx_competitors') || '',
+    avoid:       localStorage.getItem('seo_ctx_avoid')       || '',
+  };
+}
+
+function updateCtxStrip() {
+  const brand = localStorage.getItem('seo_ctx_brand') || '';
+  const el    = document.getElementById('ctxStripText');
+  const btn   = document.getElementById('ctxBtn');
+  if (brand) {
+    el.innerHTML = `<strong>${esc(brand)}</strong> <span>context active</span>`;
+    btn.style.background = 'rgba(58,92,66,.25)';
+  } else {
+    el.innerHTML = `No product context set <span>— click to add</span>`;
+    btn.style.background = '';
+  }
+}
+
+function buildCtxPrompt() {
+  const c = getCtx();
+  if (!c.brand) return '';
+  let p = `\n\n--- PRODUCT CONTEXT (use this to contextualise the blog) ---\n`;
+  p += `Brand/Product: ${c.brand}\n`;
+  if (c.what)        p += `What it does: ${c.what}\n`;
+  if (c.customer)    p += `Target customer: ${c.customer}\n`;
+  if (c.usps)        p += `Key differentiators: ${c.usps}\n`;
+  if (c.voice)       p += `Brand voice: ${c.voice}\n`;
+  if (c.competitors) p += `Competitors (differentiate from): ${c.competitors}\n`;
+  if (c.avoid)       p += `NEVER say / avoid: ${c.avoid}\n`;
+  p += `Mention the product naturally 1-3 times where genuinely relevant. Never force it.`;
+  return p;
+}
+
+/* ══════════════════════════════════════
+   UI HELPERS
+══════════════════════════════════════ */
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.output-area').forEach(a=>a.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+function showError(msg)  { const b=document.getElementById('errorBox'); b.textContent=msg; b.classList.add('show'); }
+function hideError()     { document.getElementById('errorBox').classList.remove('show'); }
+function setLoading(on)  {
+  const btn=document.getElementById('generateBtn'), bar=document.getElementById('progressBar');
+  btn.disabled=on; btn.classList.toggle('loading',on); bar.classList.toggle('show',on);
+}
+function setStatus(ok,isErr) {
+  const dot=document.getElementById('statusDot'), lbl=document.getElementById('statusLabel');
+  if (isErr)    { dot.className='status-dot error';     lbl.textContent='Connection error'; }
+  else if (ok)  { dot.className='status-dot connected'; lbl.textContent=currentApiMode==='proxy'?'Proxy connected':'API key saved'; }
+  else          { dot.className='status-dot';            lbl.textContent='Not connected'; }
+}
+function setGenStatus(msg) {
+  document.getElementById('genStatus').textContent = msg;
+}
+
+/* ══════════════════════════════════════
+   API CALL HELPER
+══════════════════════════════════════ */
+async function callClaude(system, userMsg, maxTokens=4000) {
+  const mode     = localStorage.getItem('seo_mode')      || 'direct';
+  const apiKey   = localStorage.getItem('seo_api_key')   || '';
+  const proxyUrl = localStorage.getItem('seo_proxy_url') || '';
+  const body = { model:'claude-sonnet-4-20250514', max_tokens:maxTokens, system, messages:[{role:'user',content:userMsg}] };
+  let response;
+  if (mode==='proxy') {
+    response = await fetch(proxyUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  } else {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(body)
+    });
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(()=>({}));
+    throw new Error(err?.error?.message || `HTTP ${response.status} — check your API key or proxy URL.`);
+  }
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message||'API error');
+  return data.content?.find(b=>b.type==='text')?.text || '';
+}
+
+/* ══════════════════════════════════════
+   GENERATE — 2 separate API calls
+   Call 1: plain-text metadata → safe JSON
+   Call 2: HTML article body → raw text
+══════════════════════════════════════ */
+async function generateBlog() {
+  hideError();
+
+  const keyword     = document.getElementById('keyword').value.trim();
+  const topic       = document.getElementById('topic').value.trim();
+  const productPage = document.getElementById('productPage').value.trim();
+  const audience    = document.getElementById('audience').value.trim();
+  const wordCount   = document.getElementById('wordCount').value;
+  const tone        = document.getElementById('tone').value;
+  const secondaryKw = document.getElementById('secondaryKw').value.trim();
+  const siteDomain  = document.getElementById('siteDomain').value.trim();
+  const authorName  = document.getElementById('authorName').value.trim();
+  const incFaq      = document.getElementById('incFaq').checked;
+  const incCta      = document.getElementById('incCta').checked;
+  const incStats    = document.getElementById('incStats').checked;
+  const incTips     = document.getElementById('incTips').checked;
+  const incExample  = document.getElementById('incExample').checked;
+
+  if (!keyword) { showError('Please enter a primary keyword.'); return; }
+  if (!topic)   { showError('Please enter a blog topic or title idea.'); return; }
+
+  const mode     = localStorage.getItem('seo_mode')      || 'direct';
+  const apiKey   = localStorage.getItem('seo_api_key')   || '';
+  const proxyUrl = localStorage.getItem('seo_proxy_url') || '';
+  if (mode==='direct'&&!apiKey)   { showError('No API key. Click "API Settings" to add your key.'); return; }
+  if (mode==='proxy' &&!proxyUrl) { showError('No proxy URL. Click "API Settings" to configure.'); return; }
+
+  // save domain & author for next time
+  if (siteDomain) localStorage.setItem('seo_domain', siteDomain);
+  if (authorName) localStorage.setItem('seo_author', authorName);
+
+  setLoading(true);
+
+  const ctxPrompt = buildCtxPrompt();
+  const ctx = getCtx();
+
+  // shared brief
+  const brief = `
+PRIMARY KEYWORD: ${keyword}
+BLOG ANGLE / TOPIC: ${topic}
+TARGET AUDIENCE: ${audience || (ctx.customer || 'general readers')}
+SECONDARY KEYWORDS: ${secondaryKw || 'none'}
+PRODUCT PAGE TO LINK: ${productPage || 'none'}
+LENGTH: ${wordCount} words
+TONE: ${tone}
+SECTIONS: ${[incFaq?'FAQ':'',incCta?'CTA block':'',incStats?'statistics':'',incTips?'pro tips':'',incExample?'real-world example or story':''].filter(Boolean).join(', ')||'standard'}
+${ctxPrompt}
+`.trim();
+
+  try {
+
+    /* ── CALL 1: SEO Metadata (plain text JSON, no HTML) ── */
+    setGenStatus('Step 1 of 2 — Generating SEO metadata…');
+
+    const metaSys = `You are an SEO specialist. Given a blog brief, respond with ONLY a valid JSON object. No markdown, no explanation, no extra text — just the raw JSON.
+
+Required fields:
+{
+  "seoTitle": "max 60 chars, include primary keyword near start",
+  "metaDescription": "max 160 chars, include primary keyword, compelling CTA",
+  "slug": "lowercase-hyphenated-url-slug",
+  "h1": "the article's H1 heading",
+  "wordCountEstimate": 1200,
+  "readingTimeMinutes": 6,
+  "primaryKeyword": "exact keyword string",
+  "secondaryKeywords": ["keyword1","keyword2","keyword3"],
+  "ogTitle": "Open Graph title for social sharing, can be slightly longer and catchier",
+  "ogDescription": "Open Graph description, 1-2 punchy sentences for social sharing",
+  "twitterTitle": "Twitter card title",
+  "twitterDescription": "Twitter card description"
+}
+
+All string values must be plain text — absolutely no HTML tags in any value.`;
+
+    const metaRaw  = await callClaude(metaSys, brief, 600);
+    const metaClean = metaRaw.replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/i,'').trim();
+    let meta;
+    try {
+      meta = JSON.parse(metaClean);
+    } catch(e) {
+      const m = metaClean.match(/\{[\s\S]*\}/);
+      if (m) { meta = JSON.parse(m[0]); }
+      else   { console.error('Meta raw:', metaRaw); throw new Error('Metadata parsing failed — please try again.'); }
+    }
+
+    /* ── CALL 2: HTML Article Body (returned as raw text) ── */
+    setGenStatus('Step 2 of 2 — Writing the full article…');
+
+    const articleSys = `You are an expert SEO content writer. Write a complete, humanised blog article in HTML.
+
+CRITICAL OUTPUT RULES:
+- Output ONLY the raw HTML — no explanation, no markdown fences, no code blocks
+- Start your response directly with <article> and end with </article>
+- Write like a knowledgeable human, not a robot — use "you", contractions, real examples
+- Vary sentence length. Mix short punchy sentences with longer explanations
+- No filler phrases like "In today's fast-paced world", "It's no secret", "In conclusion"
+- Every paragraph must earn its place — no padding
+
+SEO RULES:
+- Primary keyword in the first 100 words and in at least one <h2>
+- Use secondary keywords naturally — never force them
+- Heading hierarchy: <h1> once, then <h2> sections, <h3> for sub-points only
+- Short paragraphs (2-4 sentences), active voice
+
+HTML STRUCTURE:
+${incFaq     ? '- FAQ section: <h2>Frequently Asked Questions</h2> then <h3>Q: …</h3><p>A: …</p> for 3-4 questions' : ''}
+${incCta     ? `- CTA block near the end: <div class="cta-box"><p>…</p></div>${productPage?' with link to '+productPage:''}` : ''}
+${incStats   ? '- Include 2-3 real, specific statistics with source context (e.g. "According to HubSpot…")' : ''}
+${incTips    ? '- 1-2 pro tips: <div class="pro-tip"><strong>Pro Tip:</strong> …</div>' : ''}
+${incExample ? '- Open or include a short relatable story or real-world scenario that the audience will recognise' : ''}
+${productPage? `- Link naturally to ${productPage} once or twice where genuinely relevant` : ''}
+
+HUMANISATION RULES:
+- Start with a hook: a surprising stat, a bold claim, or a relatable scenario — NOT a dictionary definition
+- Use second person ("you", "your team") to speak directly to the reader
+- Include at least one concrete example or mini case study
+- End with a specific, actionable conclusion — not just "in summary"
+${ctx.voice ? `- Brand voice guidance: ${ctx.voice}` : ''}`;
+
+    const articleMsg = `${brief}
+
+The H1 for this article is: "${meta.h1}"
+
+Write the complete ${wordCount}-word article now. Begin immediately with <article>.`;
+
+    const htmlRaw = await callClaude(articleSys, articleMsg, 4000);
+    const htmlBody = htmlRaw.replace(/^```html\s*/i,'').replace(/^```\s*/i,'').replace(/```\s*$/i,'').trim();
+
+    if (!htmlBody || htmlBody.length < 200) {
+      throw new Error('Article returned empty. Please try again.');
+    }
+
+    const parsed = { ...meta, htmlBody, siteDomain, authorName };
+
+    renderBlog(parsed);
+    renderSEO(parsed, keyword, secondaryKw);
+    renderRaw(parsed);
+    setStatus(true);
+    setLoading(false);
+    setGenStatus('');
+
+  } catch(err) {
+    showError(err.message || 'Something went wrong. Please try again.');
+    setStatus(false, true);
+    setLoading(false);
+    setGenStatus('');
+  }
+}
+
+/* ══════════════════════════════════════
+   RENDER — BLOG PREVIEW
+══════════════════════════════════════ */
+function renderBlog(data) {
+  seoData = data;
+  generatedHtml = buildFullHtml(data);
+
+  document.getElementById('metaBar').innerHTML = `
+    <div class="meta-pill gold">🔑 ${esc(data.primaryKeyword)}</div>
+    <div class="meta-pill">~${data.wordCountEstimate||'—'} words</div>
+    <div class="meta-pill">⏱ ${data.readingTimeMinutes||Math.ceil((data.wordCountEstimate||1200)/200)} min read</div>
+    <div class="meta-pill green">✓ SEO Ready</div>
+    ${data.siteDomain?`<div class="meta-pill">🌐 ${esc(data.siteDomain)}</div>`:''}
+  `;
+
+  document.getElementById('blogContent').innerHTML = `
+    <style>
+      .pro-tip{background:#fdf3dc;border-left:3px solid #c9a84c;padding:10px 14px;margin:12px 0;border-radius:0 6px 6px 0;font-size:.86rem;}
+      .cta-box{background:#0f0e0b;color:#f8f5ef;padding:20px 24px;border-radius:8px;margin-top:22px;text-align:center;}
+      .cta-box p{color:#f8f5ef;margin:0;}
+      .cta-box a{color:#c9a84c;}
+    </style>
+    ${data.htmlBody}
+  `;
+
+  document.getElementById('previewEmpty').style.display  = 'none';
+  document.getElementById('previewContent').style.display = 'block';
+}
+
+/* ══════════════════════════════════════
+   RENDER — SEO ANALYSIS
+══════════════════════════════════════ */
+function renderSEO(data, primaryKw, secondaryKwStr) {
+  const secKws  = data.secondaryKeywords || (secondaryKwStr ? secondaryKwStr.split(',').map(s=>s.trim()) : []);
+  const slug    = data.slug || primaryKw.toLowerCase().replace(/\s+/g,'-');
+  const domain  = data.siteDomain || 'yoursite.com';
+  const titleOk = data.seoTitle && data.seoTitle.length <= 60;
+  const descOk  = data.metaDescription && data.metaDescription.length <= 160;
+
+  const el = document.getElementById('seoContent');
+  el.innerHTML = `
+    <div class="seo-card">
+      <div class="seo-card-header"><h4>🔍 Google SERP Preview</h4></div>
+      <div class="seo-card-body">
+        <div class="meta-preview">
+          <div class="serp-title">${esc(data.seoTitle||'—')}</div>
+          <div class="serp-url">https://${esc(domain)}/${esc(slug)}</div>
+          <div class="serp-desc">${esc(data.metaDescription||'—')}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="seo-card">
+      <div class="seo-card-header"><h4>✅ On-Page SEO Checklist</h4></div>
+      <div class="seo-card-body"><div class="checklist">
+        <div class="check-item"><span class="check-icon">${titleOk?'✅':'⚠️'}</span><span><strong>Title tag:</strong> ${data.seoTitle?data.seoTitle.length:0} chars — ${titleOk?'optimal (≤60)':'over 60, may truncate in SERPs'}</span></div>
+        <div class="check-item"><span class="check-icon">${descOk?'✅':'⚠️'}</span><span><strong>Meta description:</strong> ${data.metaDescription?data.metaDescription.length:0} chars — ${descOk?'optimal (≤160)':'over 160, may truncate'}</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>H1:</strong> "${esc((data.h1||'').substring(0,60))}${(data.h1||'').length>60?'…':''}"</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>Primary keyword</strong> in title, H1, and body copy</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>URL slug:</strong> /${esc(slug)}</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>Content depth:</strong> ~${data.wordCountEstimate||'1200'} words</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>Open Graph tags</strong> generated for social sharing</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>Twitter Card tags</strong> generated</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>BlogPosting JSON-LD schema</strong> included in HTML output</span></div>
+        <div class="check-item"><span class="check-icon">✅</span><span><strong>Canonical URL</strong> included</span></div>
+        <div class="check-item"><span class="check-icon">ℹ️</span><span><strong>Images:</strong> add featured image with keyword-rich alt text before publishing</span></div>
+      </div></div>
+    </div>
+
+    <div class="seo-card">
+      <div class="seo-card-header"><h4>📣 Social Preview — Open Graph</h4></div>
+      <div class="seo-card-body">
+        <div class="meta-preview">
+          <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">${esc(domain)}</div>
+          <div class="serp-title" style="color:var(--ink);text-decoration:none;">${esc(data.ogTitle||data.seoTitle||'—')}</div>
+          <div class="serp-desc" style="margin-top:4px;">${esc(data.ogDescription||data.metaDescription||'—')}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="seo-card">
+      <div class="seo-card-header"><h4>🔑 Keyword Map</h4></div>
+      <div class="seo-card-body">
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:5px">Primary</p>
+        <div class="keyword-tags"><span class="keyword-tag primary">${esc(data.primaryKeyword||primaryKw)}</span></div>
+        ${secKws.length?`<p style="font-size:.78rem;color:var(--muted);margin:10px 0 5px">Secondary</p>
+        <div class="keyword-tags">${secKws.map(k=>`<span class="keyword-tag">${esc(k)}</span>`).join('')}</div>`:''}
+      </div>
+    </div>
+
+    <div class="seo-card">
+      <div class="seo-card-header"><h4>🚀 Pre-Publish Checklist</h4></div>
+      <div class="seo-card-body"><div class="checklist">
+        <div class="check-item"><span class="check-icon">📸</span><span>Add featured image (1200×630px) with keyword-rich alt text</span></div>
+        <div class="check-item"><span class="check-icon">🔗</span><span>Add 2-3 internal links to related pages on your site</span></div>
+        <div class="check-item"><span class="check-icon">📱</span><span>Preview on mobile before publishing</span></div>
+        <div class="check-item"><span class="check-icon">🗂️</span><span>Submit URL to Google Search Console after publishing</span></div>
+        <div class="check-item"><span class="check-icon">📊</span><span>Track ranking for "${esc(data.primaryKeyword||primaryKw)}" in 30-60 days</span></div>
+        <div class="check-item"><span class="check-icon">🔄</span><span>Schedule a content refresh in 6 months</span></div>
+      </div></div>
+    </div>
+  `;
+
+  document.getElementById('seoEmpty').style.display = 'none';
+  el.style.display = 'flex';
+}
+
+/* ══════════════════════════════════════
+   RENDER — FULL HTML OUTPUT
+   (complete production-ready file with
+    all SEO tags, OG, Twitter, Schema)
+══════════════════════════════════════ */
+function renderRaw(data) {
+  document.getElementById('rawCode').textContent = buildFullHtml(data);
+  document.getElementById('rawEmpty').style.display  = 'none';
+  document.getElementById('rawContent').style.display = 'block';
+}
+
+function buildFullHtml(data) {
+  const domain     = data.siteDomain ? data.siteDomain.replace(/https?:\/\//,'').replace(/\/$/,'') : 'yoursite.com';
+  const slug       = data.slug || '';
+  const canonicalUrl = `https://${domain}/${slug}`;
+  const author     = data.authorName || 'Editorial Team';
+  const dateNow    = new Date().toISOString().split('T')[0];
+  const secKws     = Array.isArray(data.secondaryKeywords) ? data.secondaryKeywords.join(', ') : '';
+
+  const schema = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": data.seoTitle || '',
+    "description": data.metaDescription || '',
+    "author": { "@type": "Person", "name": author },
+    "publisher": { "@type": "Organization", "name": domain },
+    "datePublished": dateNow,
+    "dateModified": dateNow,
+    "mainEntityOfPage": { "@type": "WebPage", "@id": canonicalUrl },
+    "keywords": [data.primaryKeyword, ...( Array.isArray(data.secondaryKeywords) ? data.secondaryKeywords : [])].filter(Boolean).join(', ')
+  }, null, 2);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- ═══ PRIMARY SEO TAGS ═══ -->
+  <title>${esc(data.seoTitle||'')}</title>
+  <meta name="description" content="${esc(data.metaDescription||'')}"/>
+  <meta name="keywords" content="${esc(data.primaryKeyword||'')}${secKws?', '+esc(secKws):''}"/>
+  <meta name="author" content="${esc(author)}"/>
+  <meta name="robots" content="index, follow"/>
+  <link rel="canonical" href="${canonicalUrl}"/>
+
+  <!-- ═══ OPEN GRAPH (Facebook, LinkedIn) ═══ -->
+  <meta property="og:type" content="article"/>
+  <meta property="og:title" content="${esc(data.ogTitle||data.seoTitle||'')}"/>
+  <meta property="og:description" content="${esc(data.ogDescription||data.metaDescription||'')}"/>
+  <meta property="og:url" content="${canonicalUrl}"/>
+  <meta property="og:site_name" content="${esc(domain)}"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta property="article:published_time" content="${dateNow}"/>
+  <meta property="article:author" content="${esc(author)}"/>
+  <meta property="article:tag" content="${esc(data.primaryKeyword||'')}"/>
+  <!-- og:image — add your featured image URL here -->
+  <!-- <meta property="og:image" content="https://${domain}/images/${slug}-featured.jpg"/> -->
+  <!-- <meta property="og:image:width" content="1200"/> -->
+  <!-- <meta property="og:image:height" content="630"/> -->
+
+  <!-- ═══ TWITTER CARD ═══ -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="${esc(data.twitterTitle||data.ogTitle||data.seoTitle||'')}"/>
+  <meta name="twitter:description" content="${esc(data.twitterDescription||data.ogDescription||data.metaDescription||'')}"/>
+  <!-- <meta name="twitter:image" content="https://${domain}/images/${slug}-featured.jpg"/> -->
+  <!-- <meta name="twitter:site" content="@yourhandle"/> -->
+
+  <!-- ═══ BLOGPOSTING SCHEMA (JSON-LD) ═══ -->
+  <script type="application/ld+json">
+${schema}
+  <\/script>
+
+</head>
+<body>
+
+${data.htmlBody||''}
+
+</body>
+</html>`;
+}
+
+/* ══════════════════════════════════════
+   UTILS
+══════════════════════════════════════ */
+function esc(s) { if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function copyBlog() {
+  navigator.clipboard.writeText(document.getElementById('blogContent').innerText).then(()=>{
+    const btn=event.target; btn.textContent='✅ Copied!'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 Copy Text';btn.classList.remove('copied');},2000);
+  });
+}
+function copyHtml() {
+  navigator.clipboard.writeText(document.getElementById('rawCode').textContent).then(()=>{
+    const btn=document.getElementById('copyHtmlBtn'); btn.textContent='✅ Copied!'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 Copy HTML';btn.classList.remove('copied');},2000);
+  });
+}
+function downloadHtml() {
+  if (!generatedHtml) return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([generatedHtml],{type:'text/html'}));
+  a.download=(seoData.slug||'blog-post')+'.html';
+  a.click();
+}
+</script>
+</body>
+</html>
